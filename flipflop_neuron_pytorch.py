@@ -24,8 +24,8 @@ class FlipFlop(nn.Module):
         output = j * (1 - prev_output) + (1 - k) * prev_output
         return output, [output]
     
-obj = FlipFlop(2)
+'''obj = FlipFlop(2)
 states = torch.rand((1,7))
 inputs = torch.rand((1,7))
 output, _ = obj(inputs, states)
-print(output)
+print(output)'''
