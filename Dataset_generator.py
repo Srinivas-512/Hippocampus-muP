@@ -1,16 +1,10 @@
-#!/usr/bin/env python
-# coding: utf-8
-
-# In[27]:
-
-
 import numpy as np
 import random
 import pandas
 import torch
 
-dataSizeHere = 5
-trainDataLength = 100
+# dataSizeHere = 5
+# trainDataLength = 100
 
 
 # ### Sequential Input Generator
@@ -20,16 +14,12 @@ trainDataLength = 100
 # 1. Store - 00
 # 2. Store Terminate - 01
 # 3. Retrieve - 10
-
-# In[28]:
-
-
 #X generator
 
 def generator_X(storeLength, dataSize):
     
     #Store
-    X = np.zeros(shape=(1, dataSize+2), dtype = np.uint8)
+    X = np.zeros(shape=(1, dataSize+2), dtype = float)
     for i in range(storeLength):
         Y = [0] * (dataSize+2)
         Y = np.array(Y)
@@ -48,19 +38,10 @@ def generator_X(storeLength, dataSize):
         X = np.vstack((X,Y))   
     return X
 
-
-
-# ### Sequential Output Generator
-# 
-# The below function generates the sequence of outputs Y based on a given X, mimicking the stack operation.
-
-# In[29]:
-
-
 #Y generator based on the X generated
 
 def generator_Y(X, dataSize):
-    Y = np.zeros(shape=(1, dataSize+2), dtype = np.uint8)
+    Y = np.zeros(shape=(1, dataSize+2), dtype = float)
     for i in range(X.shape[0]):
         if ((X[i][0:2] == [0,0]).all()):
             J = [0] * (dataSize+2)
@@ -76,22 +57,9 @@ def generator_Y(X, dataSize):
     return Y
     
     
-Y = generator_Y(X, dataSizeHere)
+#Y = generator_Y(X, dataSizeHere)
 # print('X=',X)
 # print('Y=',Y)
-
-
-            
-            
-        
-
-
-# ### Train Data Generator
-# The following function generates a dictionary containing "trainDataLength" pairs of randomly generated X and Y. Giving us the required data set for training our model.
-
-# In[30]:
-
-
 #X_Train data generator
 
 def trainDataGenerator(trainDataLength, dataSize):
@@ -106,18 +74,14 @@ def trainDataGenerator(trainDataLength, dataSize):
     for i in range(trainDataLength) :
         data1 = trainData['X'+str(i+1)]
         data2 = trainData['Y'+str(i+1)]
-        tensor1 = torch.tensor(data1)
-        tensor2 = torch.tensor(data2)
+        tensor1 = torch.tensor(data1).type(torch.float32)
+        tensor2 = torch.tensor(data2).type(torch.float32)
         trainData['X'+str(i+1)] = tensor1
         trainData['Y'+str(i+1)] = tensor2
     return trainData
         
-trainData = trainDataGenerator(trainDataLength, dataSizeHere)
-trainData
-
-
-# In[ ]:
-
+# trainData = trainDataGenerator(trainDataLength, dataSizeHere)
+# trainData
 
 
 
