@@ -66,7 +66,7 @@ def trainDataGenerator(trainDataLength, dataSize):
     trainData = {}
     
     for i in range(trainDataLength):
-        storeLengthHere = random.randint(1,10)
+        storeLengthHere = 5 #random.randint(1,10)
         X_temp = generator_X(storeLengthHere, dataSize)
         trainData['X'+str(i+1)] = X_temp
         trainData['Y'+str(i+1)] = generator_Y(X_temp, dataSize)
