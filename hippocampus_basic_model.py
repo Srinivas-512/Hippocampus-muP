@@ -6,24 +6,36 @@ import Dataset_generator
 
 
 class Model(nn.Module):
-    def __init__(self, input_size):
+    def __init__(self, input_size, m):
         super(Model, self).__init__()
         self.input_size = input_size
-        self.ff_hidden_size = input_size*2
-        self.linear1 = nn.Linear(self.ff_hidden_size+self.input_size, input_size)
-        self.ff1 = FlipFlop(self.ff_hidden_size, 1)
-        self.ff2 = FlipFlop(self.ff_hidden_size, 1)
+        self.ff_hidden_size = input_size*m
+        self.linear1 = nn.Linear(self.ff_hidden_size+self.input_size, self.input_size)
+        self.ff1 = FlipFlop(self.input_size+self.input_size, self.ff_hidden_size)
+        self.ff2 = FlipFlop(self.ff_hidden_size, self.ff_hidden_size)
         self.linear2 = nn.Linear(self.ff_hidden_size, input_size)
         self.activation = nn.Sigmoid()
+        # self.activation2 = nn.Softmax()
     
-    def forward(self, input, output, ff2_out, ff1_hidden, ff2_hidden):
-        x = self.linear1(torch.cat((ff2_out, input), 1))
-        x = torch.cat((x, output),1)
-        x, ff1_hidden = self.ff1(x, ff1_hidden)
-        x, ff2_hidden = self.ff2(x, ff2_hidden)
-        ff2_out = x.clone()
-        x = self.activation(self.linear2(x))
-        return x, ff1_hidden, ff2_hidden, ff2_out
+    def forward(self, X):
+        #(t,input_dim)
+        out, ff2_out, ff1_hidden, ff2_hidden = self.hidden_init()
+        outputs = torch.zeros(X.shape[0], X.shape[-1])
+        #print(x.shape)
+
+        for j in range(X.shape[0]):
+            #print(x[j])
+            input = X[j:j+1]#.reshape(1, -1)
+            #print(input.shape)
+            x = self.linear1(torch.cat((ff2_out, input), 1))
+            x = torch.cat((x, out),1)
+            x, ff1_hidden = self.ff1(x, ff1_hidden)
+            x, ff2_hidden = self.ff2(x, ff2_hidden)
+            ff2_out = x
+            out = self.activation(self.linear2(x))
+            outputs[j] = out
+
+        return outputs
     
     def hidden_init(self):
         out = torch.zeros((1, self.input_size))
@@ -40,27 +52,33 @@ class Model(nn.Module):
 # print(ff1_hidden)
 # print(ff2_hidden)
 
-data = Dataset_generator.trainDataGenerator(100, 5)
-model = Model(7)
-out, ff2_out, ff1_hidden, ff2_hidden = model.hidden_init()
+data = Dataset_generator.trainDataGenerator(8, 5)
+model = Model(7, 10)
 
-loss_function = nn.CrossEntropyLoss()
-optimizer = torch.optim.Adam(model.parameters(), lr = 0.01)
+loss_function = nn.BCELoss()
+weight_decay = 0.1
+T_max = 30
+optimizer = torch.optim.AdamW(model.parameters(), lr =  0.001, weight_decay=weight_decay)
+scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=T_max)
 
 torch.autograd.set_detect_anomaly(True)
 
-for epoch in range(10):
+#with torch.no_grad():
+for epoch in range(1000):
     for i in range(len(data)//2):
         x_key = "X"+str(i+1)
         y_key = "Y"+str(i+1)
         x = data[x_key]
         y = data[y_key]
-        loss = torch.zeros(x.shape[0])
-        for j in range(x.shape[0]):
-            input = x[j].clone().reshape(1,-1)
-            out, ff1_hidden, ff2_hidden, ff2_out = model(input, out, ff2_out, ff1_hidden, ff2_hidden)
-            loss[j] = loss_function(out.reshape(-1), y[j])
-        loss = torch.mean(loss)
-        print(f"Loss = {loss}")
+        
+        optimizer.zero_grad()
+        outputs = model(x)
+        loss = loss_function(outputs, y)
         loss.backward(retain_graph = True)  
         optimizer.step()
+
+        # loss = torch.mean(loss)
+    if epoch%10 == 0:
+        print(f"Loss = {loss}")
+        #print(outputs, y)
+            
