@@ -87,9 +87,9 @@ def dict_to_tensor(trainData):
     l = len(trainData)//2
     inputs = torch.zeros((l,2*max_size+1,dataSizeHere+2))
     outputs = torch.zeros((l,2*max_size+1,dataSizeHere+2))
-    indices = torch.zeros((l,1))
+    pad_indices = torch.zeros((l,1))
     for i in range(l):
-        indices[i] = len(trainData['X'+str(i+1)])-1
+        pad_indices[i] = len(trainData['X'+str(i+1)])
         if (len(trainData['X'+str(i+1)]) < 2*max_size+1):
             l = len(trainData['X'+str(i+1)])
             for j in range(l,2*max_size+1):
@@ -103,7 +103,7 @@ def dict_to_tensor(trainData):
         inputs[i] = trainData['X'+str(i+1)]
         outputs[i] = trainData['Y'+str(i+1)]
          
-    return inputs,outputs,indices
+    return inputs,outputs,pad_indices
 
 print(dict_to_tensor(trainData)[0].shape)
 print(dict_to_tensor(trainData)[0][2])
