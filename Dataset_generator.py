@@ -1,10 +1,10 @@
 import numpy as np
 import random
-import pandas
 import torch
 
-# dataSizeHere = 5
-# trainDataLength = 100
+dataSizeHere = 5
+trainDataLength = 10
+max_size = 8
 
 
 # ### Sequential Input Generator
@@ -66,7 +66,7 @@ def trainDataGenerator(trainDataLength, dataSize):
     trainData = {}
     
     for i in range(trainDataLength):
-        storeLengthHere = 5 #random.randint(1,10)
+        storeLengthHere = random.randint(1, max_size)
         X_temp = generator_X(storeLengthHere, dataSize)
         trainData['X'+str(i+1)] = X_temp
         trainData['Y'+str(i+1)] = generator_Y(X_temp, dataSize)
@@ -80,8 +80,78 @@ def trainDataGenerator(trainDataLength, dataSize):
         trainData['Y'+str(i+1)] = tensor2
     return trainData
         
-# trainData = trainDataGenerator(trainDataLength, dataSizeHere)
-# trainData
+trainData = trainDataGenerator(trainDataLength, dataSizeHere)
+
+#Converting dictionary to a tensor after padding
+def dict_to_tensor(trainData):
+    l = len(trainData)//2
+    inputs = torch.zeros((l,2*max_size+1,dataSizeHere+2))
+    outputs = torch.zeros((l,2*max_size+1,dataSizeHere+2))
+    indices = torch.zeros((l,1))
+    for i in range(l):
+        indices[i] = len(trainData['X'+str(i+1)])-1
+        if (len(trainData['X'+str(i+1)]) < 2*max_size+1):
+            l = len(trainData['X'+str(i+1)])
+            for j in range(l,2*max_size+1):
+                zeros_row = torch.zeros((1, dataSizeHere+2))
+                trainData['X'+str(i+1)]= torch.cat((trainData['X'+str(i+1)], zeros_row), dim=0)
+        if (len(trainData['Y'+str(i+1)]) < 2*max_size+1):
+            l = len(trainData['Y'+str(i+1)])
+            for j in range(l,2*max_size+1):
+                zeros_row = torch.zeros((1, dataSizeHere+2))
+                trainData['Y'+str(i+1)]= torch.cat((trainData['Y'+str(i+1)], zeros_row), dim=0)
+        inputs[i] = trainData['X'+str(i+1)]
+        outputs[i] = trainData['Y'+str(i+1)]
+         
+    return inputs,outputs,indices
+
+print(dict_to_tensor(trainData)[0].shape)
+print(dict_to_tensor(trainData)[0][2])
 
 
+#Converting binary data to decimal
+def binary_to_int(binary_array):
+    binary_string = ''.join(str(bit.item()) for bit in binary_array)
+    int_val = int(binary_string, 2)
+    return float(int_val)
+
+def binary_tensor_to_int(tensor):
+    tensor = tensor.long()
+    num_rows = tensor.size(0)
+    int_tensor = torch.zeros(num_rows, dtype=torch.int64)
+    for i in range(num_rows):
+        int_val = binary_to_int(tensor[i])
+        int_tensor[i] = int_val
+    return int_tensor
+
+
+def binary_to_decimal(trainData):
+    no_of_inputs = len(trainData)//2
+
+    inputs = torch.zeros((no_of_inputs, 2*max_size+1))
+    outputs = torch.zeros((no_of_inputs,2*max_size+1))
+    for i in range(no_of_inputs):
+        if (len(trainData['X'+str(i+1)]) < 2*max_size+1):
+            l = len(trainData['X'+str(i+1)])
+            for j in range(l,2*max_size+1):
+                zeros_row = torch.zeros((1, dataSizeHere+2))
+                trainData['X'+str(i+1)]= torch.cat((trainData['X'+str(i+1)], zeros_row), dim=0)
+        if (len(trainData['Y'+str(i+1)]) < 2*max_size+1):
+            l = len(trainData['Y'+str(i+1)])
+            for j in range(l,2*max_size+1):
+                zeros_row = torch.zeros((1, dataSizeHere+2))
+                trainData['Y'+str(i+1)]= torch.cat((trainData['Y'+str(i+1)], zeros_row), dim=0)
+        inputs[i] = binary_tensor_to_int(trainData['X'+str(i+1)])
+        outputs[i] = binary_tensor_to_int(trainData['Y'+str(i+1)])
+    return inputs,outputs
+
+
+def DataGenerator(trainData):
+    inputs, outputs = binary_to_decimal(trainData)
+    return inputs,outputs
+
+
+data = DataGenerator(trainData)
+print(data[0])
+print(data[1])
 
