@@ -2,10 +2,6 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-class Decoder(nn.Module):
-    def __init__(self, attention_size):
-        super(Decoder, self).__init__()
-        self.attention_size = attention_size
 
 class AttentionDecoder(nn.Module):
     def __init__(self, device, hidden_size, output_size, max_length, dropout_p=0.1):
@@ -25,6 +21,7 @@ class AttentionDecoder(nn.Module):
     def forward(self, input, hidden, encoder_outputs):
         embedded = self.embedding(input).view(1, 1, -1)
         embedded = self.dropout(embedded)
+        print(embedded.shape)
 
         attn_weights = F.softmax(
             self.attn(torch.cat((embedded[0], hidden[0]), 1)), dim=1)
@@ -42,3 +39,10 @@ class AttentionDecoder(nn.Module):
 
     def initHidden(self):
         return torch.zeros(1, 1, self.hidden_size, device=self.device)
+    
+input = torch.randint(2, (3, 5, 7))
+encoder_out = torch.rand((3, 5, 512))
+obj = AttentionDecoder(torch.device("cpu"), 512, 7, 7)
+hidden = obj.initHidden()
+out, hidden, attn_weights = obj.forward(input, hidden, encoder_out)
+print(out.shape)
