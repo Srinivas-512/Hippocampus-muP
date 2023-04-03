@@ -1,10 +1,11 @@
 import numpy as np
 import random
 import torch
+import torch.nn.functional as F
 
-dataSizeHere = 5
-trainDataLength = 10
-max_size = 8
+# dataSizeHere = 5
+# trainDataLength = 10
+# max_size = 8
 
 
 # ### Sequential Input Generator
@@ -80,7 +81,7 @@ def trainDataGenerator(trainDataLength, dataSize):
         trainData['Y'+str(i+1)] = tensor2
     return trainData
         
-trainData = trainDataGenerator(trainDataLength, dataSizeHere)
+# trainData = trainDataGenerator(trainDataLength, dataSizeHere)
 
 
 
@@ -110,10 +111,7 @@ def dict_to_tensor(trainData):
          
     return inputs,outputs,pad_indices
 
-inputs,outputs,pad_indices = dict_to_tensor(trainData)
-print(inputs)
-print(pad_indices)
-
+# inputs,outputs,pad_indices = dict_to_tensor(trainData)
 
 #Converting binary data to decimal
 def binary_to_int(binary_array):
@@ -160,12 +158,18 @@ def DataGenerator(trainData):
 def PairGenerator(trainData):
     inputs, outputs = DataGenerator(trainData)
     l = len(inputs)
+    one_hot_outputs = torch.zeros(l,17,128)
+    one_hot_tensor = F.one_hot(torch.arange(0,128))
+    for i in range(l):
+        k = len(outputs[i])
+        for j in range(k):
+            one_hot_outputs[i][j] = one_hot_tensor[int(outputs[i][j].item())]
     pairs = []
     for i in range(l):
-        pairs.append((inputs[i],outputs[i]))
+        pairs.append((inputs[i],one_hot_outputs[i]))
     return pairs
 
-data = PairGenerator(trainData)
-print(data)
+# data = PairGenerator(trainData)
+# print(data[2][1].shape)
 
 
