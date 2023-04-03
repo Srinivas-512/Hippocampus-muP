@@ -3,6 +3,10 @@ import torch.nn as nn
 import torch.nn.functional as F
 from Encoder import EncoderRNN
 from Attention_Decoder import AttentionDecoder
+import Dataset_generator
+import matplotlib.pyplot as plt
+import time
+import random
 
 class Model(nn.Module):
     def __init__(self, vocab_size, embed_dim, hidden_size, max_length, batch_size):
@@ -34,57 +38,61 @@ class Model(nn.Module):
             out, self.decoder_hidden, self.decoder_cell = self.decoder(decoder_input, self.decoder_hidden, self.decoder_cell, encoder_outputs)
             topv, topi = out.topk(1, dim=-1)
             decoder_input = topi.squeeze(1).detach()
-            print(out.shape)
             loss += criterion(out.squeeze(1), target_tensor[:,i])
         
-        return loss, loss.item() / target_length
+        # loss.backward()
+        # optimizer.step()
+        return loss, loss.item()/target_length
 
-# c = nn.MSELoss()
-# obj = Model(128, 128, 512, 10, 3)
-# input = torch.randint(40, (3, 10))
-# output = torch.rand((3, 10, 128))
-# loss, avg = obj.forward(input, 10, 10, output, c)
-# print(avg)
 '''
 input is -- > (batch size, number of numbers -- sequence length)
 '''
 
-# obj = Hippocampus(10, 5)
-# input = torch.rand(1,5)
-# obj.hidden_init()
-# out= obj(input)
-# print(out)
-# print(lstm1_hidden)
-# print(lstm2_hidden)
-# lstm1_hidden = torch.zeros((1,self.hidden_size))
-# lstm2_hidden = torch.zeros((1,self.hidden_size))     , lstm1_hidden, lstm2_hidden
 
-# data = Dataset_generator.trainDataGenerator(8, 5)
-# model = Hippocampus(300, 7)
+trainDataLength = 10
+max_size = 8
+dataSizeHere = 5
+trainData = Dataset_generator.trainDataGenerator(trainDataLength, dataSizeHere)
+pairs = Dataset_generator.PairGenerator(trainData)
+#print(data)
 
-# loss_function = nn.BCELoss()
-# weight_decay = 0.1
-# T_max = 30
-# optimizer = torch.optim.AdamW(model.parameters(), lr =  0.01, weight_decay=weight_decay)
-# scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=T_max)
 
-# torch.autograd.set_detect_anomaly(True)
+def trainIters(pairs, n_iters, print_every=1000, plot_every=100, learning_rate=0.01):
+    start = time.time()
+    plot_losses = []
+    print_loss_total = 0  # Reset every print_every
+    plot_loss_total = 0  # Reset every plot_every
+    model = Model(128, 128, 512, 17, 1)
 
-# for epoch in range(1000):
-#     for i in range(len(data)//2):
-#         optimizer.zero_grad()
-#         x_key = "X"+str(i+1)
-#         y_key = "Y"+str(i+1)
-#         x = data[x_key]
-#         y = data[y_key]
-        
-#         optimizer.zero_grad()
-#         outputs = model(x)
-#         loss = loss_function(outputs, y)
-#         #loss = torch.autograd.Variable(loss, requires_grad = True)
-#         loss.backward() #retain_graph = True)  
-#         optimizer.step()
+    optimizer = torch.optim.SGD(model.parameters(), lr=learning_rate)
+    training_pairs = [random.choice(pairs) for i in range(n_iters)]
+    criterion = nn.CrossEntropyLoss()
 
-#     if epoch%10 == 0:
-#         print(f"Loss = {loss}")
-            
+    for iter in range(1, n_iters + 1):
+        training_pair = training_pairs[iter - 1]
+        input_tensor = training_pair[0]
+        target_tensor = training_pair[1]
+
+        # loss = Dataset_generator.train(input_tensor, target_tensor, encoder,
+        #              decoder, encoder_optimizer, decoder_optimizer, criterion)
+
+        loss, avg= model.forward(input_tensor, target_tensor.shape[0], input_tensor.shape[0], target_tensor, criterion)
+        loss.backward()
+        optimizer.step()
+        print_loss_total += loss
+        plot_loss_total += loss
+
+        if iter % print_every == 0:
+            print_loss_avg = print_loss_total / print_every
+            print_loss_total = 0
+            print('%s (%d %d%%) %.4f' % (time.timeSince(start, iter / n_iters),
+                                         iter, iter / n_iters * 100, print_loss_avg))
+
+        if iter % plot_every == 0:
+            plot_loss_avg = plot_loss_total / plot_every
+            plot_losses.append(plot_loss_avg)
+            plot_loss_total = 0
+
+    plt.showPlot(plot_losses)
+
+trainIters(pairs, 75000)
