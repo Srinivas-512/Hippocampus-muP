@@ -18,7 +18,7 @@ class Model(nn.Module):
         self.decoder = decoder
         self.encoder_hidden, self.encoder_cell = encoder.init_hidden(self.batch_size)
         self.decoder_hidden, self.decoder_cell = decoder.init_hidden(self.batch_size)
-        self.sos = torch.ones((self.batch_size, 1), dtype=torch.long)*65
+        self.sos = torch.ones((self.batch_size, 1), dtype=torch.long)*127
     
     def forward(self, x, target_length, input_length, target_tensor, criterion):
         loss = 0
@@ -35,16 +35,16 @@ class Model(nn.Module):
             topv, topi = out.topk(1, dim=-1)
             decoder_input = topi.squeeze(1).detach()
             print(out.shape)
-            loss += criterion(out, target_tensor[:,i])
+            loss += criterion(out.squeeze(1), target_tensor[:,i])
         
         return loss, loss.item() / target_length
 
-c = nn.MSELoss()
-obj = Model(66, 128, 512, 10, 3)
-input = torch.randint(40, (3, 10))
-output = torch.randint(40, (3, 10))
-loss, avg = obj.forward(input, 10, 10, output, c)
-print(avg)
+# c = nn.MSELoss()
+# obj = Model(128, 128, 512, 10, 3)
+# input = torch.randint(40, (3, 10))
+# output = torch.rand((3, 10, 128))
+# loss, avg = obj.forward(input, 10, 10, output, c)
+# print(avg)
 '''
 input is -- > (batch size, number of numbers -- sequence length)
 '''
