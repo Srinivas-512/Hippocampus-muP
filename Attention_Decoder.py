@@ -35,10 +35,10 @@ class AttentionDecoder(nn.Module):
         cell = torch.zeros(1+int(self.bidirectional), batch_size, self.hidden_size)
         return hidden, cell
     
-obj = AttentionDecoder(device=torch.device("cpu"), hidden_size=1024, output_vocab=66, max_length=10)
-hidden, cell = obj.init_hidden(3)
-input = torch.randint(40, (3, 10))
-enc_out = torch.rand(3, 10, 1024)
-print(input)
-out, _, _ = obj(input, hidden, cell, enc_out)
-print(out.shape)
+# obj = AttentionDecoder(device=torch.device("cpu"), hidden_size=1024, output_vocab=66, max_length=10)
+# hidden, cell = obj.init_hidden(3)
+# input = torch.randint(40, (3, 10))
+# enc_out = torch.rand(3, 10, 1024)
+# print(input)
+# out, _, _ = obj(input, hidden, cell, enc_out)
+# print(out.shape)
