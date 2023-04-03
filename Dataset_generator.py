@@ -166,7 +166,7 @@ def PairGenerator(trainData):
             one_hot_outputs[i][j] = one_hot_tensor[int(outputs[i][j].item())]
     pairs = []
     for i in range(l):
-        pairs.append((inputs[i],one_hot_outputs[i]))
+        pairs.append((inputs[i].reshape(1,-1).type(torch.int),one_hot_outputs[i].unsqueeze(0)))
     return pairs
 
 # data = PairGenerator(trainData)
