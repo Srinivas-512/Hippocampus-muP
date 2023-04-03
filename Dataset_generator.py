@@ -66,7 +66,7 @@ def trainDataGenerator(trainDataLength, dataSize):
     trainData = {}
     
     for i in range(trainDataLength):
-        storeLengthHere = random.randint(1, max_size)
+        storeLengthHere = 8
         X_temp = generator_X(storeLengthHere, dataSize)
         trainData['X'+str(i+1)] = X_temp
         trainData['Y'+str(i+1)] = generator_Y(X_temp, dataSize)
@@ -82,14 +82,19 @@ def trainDataGenerator(trainDataLength, dataSize):
         
 trainData = trainDataGenerator(trainDataLength, dataSizeHere)
 
+
+
 #Converting dictionary to a tensor after padding
 def dict_to_tensor(trainData):
     l = len(trainData)//2
     inputs = torch.zeros((l,2*max_size+1,dataSizeHere+2))
     outputs = torch.zeros((l,2*max_size+1,dataSizeHere+2))
-    pad_indices = torch.zeros((l,1))
+    pad_indices = np.zeros((1,l))
     for i in range(l):
-        pad_indices[i] = len(trainData['X'+str(i+1)])
+        pad_indices[0][i] = (trainData['X'+str(i+1)]).shape[0] 
+    pad_indices = pad_indices.reshape(-1)
+
+    for i in range(l):
         if (len(trainData['X'+str(i+1)]) < 2*max_size+1):
             l = len(trainData['X'+str(i+1)])
             for j in range(l,2*max_size+1):
@@ -105,8 +110,9 @@ def dict_to_tensor(trainData):
          
     return inputs,outputs,pad_indices
 
-print(dict_to_tensor(trainData)[0].shape)
-print(dict_to_tensor(trainData)[0][2])
+inputs,outputs,pad_indices = dict_to_tensor(trainData)
+print(inputs)
+print(pad_indices)
 
 
 #Converting binary data to decimal
@@ -151,7 +157,15 @@ def DataGenerator(trainData):
     return inputs,outputs
 
 
-data = DataGenerator(trainData)
-print(data[0])
-print(data[1])
+def PairGenerator(trainData):
+    inputs, outputs = DataGenerator(trainData)
+    l = len(inputs)
+    pairs = []
+    for i in range(l):
+        pairs.append((inputs[i],outputs[i]))
+    return pairs
+
+data = PairGenerator(trainData)
+print(data)
+
 
