@@ -3,9 +3,9 @@ import random
 import torch
 import torch.nn.functional as F
 
-# dataSizeHere = 5
-# trainDataLength = 10
-# max_size = 8
+dataSizeHere = 5
+trainDataLength = 10
+max_size = 8
 
 
 # ### Sequential Input Generator
