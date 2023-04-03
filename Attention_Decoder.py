@@ -11,7 +11,7 @@ class AttentionDecoder(nn.Module):
         self.dropout_p = dropout_p
         self.max_length = max_length
         self.device = device
-        self.embedding = nn.Embedding(self.output_size, self.hidden_size)
+        self.embedding_decoder = nn.Embedding(self.output_size, self.hidden_size)
         self.attn = nn.MultiheadAttention(self.hidden_size, num_heads=1, batch_first=True)
         self.attn_combine = nn.Linear(self.hidden_size * 2, self.hidden_size)
         self.dropout = nn.Dropout(self.dropout_p)
@@ -20,15 +20,15 @@ class AttentionDecoder(nn.Module):
         self.bidirectional = True
 
     def forward(self, input, hidden, cell, encoder_outputs):
-        embedded = self.embedding(input)
-        embedded = self.dropout(embedded)
-        attn_applied, _ = self.attn(embedded, encoder_outputs, encoder_outputs)
-        output = torch.cat((embedded, attn_applied), -1)
+        embedded_decoder = self.embedding_decoder(input)
+        embedded_decoder = self.dropout(embedded_decoder)
+        attn_applied, _ = self.attn(embedded_decoder, encoder_outputs, encoder_outputs)
+        output = torch.cat((embedded_decoder, attn_applied), -1)
         output = self.attn_combine(output)
         output = F.relu(output)
         output, (hidden, cell) = self.rnn(output, (hidden, cell))
-        output = F.log_softmax(self.out(output), dim=-1)
-        return output, hidden, attn_applied
+        output = F.softmax(self.out(output), dim=-1)
+        return output, hidden, cell
 
     def init_hidden(self, batch_size):
         hidden = torch.zeros(1+int(self.bidirectional), batch_size, self.hidden_size)
@@ -37,7 +37,8 @@ class AttentionDecoder(nn.Module):
     
 # obj = AttentionDecoder(device=torch.device("cpu"), hidden_size=1024, output_vocab=66, max_length=10)
 # hidden, cell = obj.init_hidden(3)
-# input = torch.randint(40, (3, 10))
+# print(hidden.shape)
+# input = torch.randint(40, (3, 1))
 # enc_out = torch.rand(3, 10, 1024)
 # print(input)
 # out, _, _ = obj(input, hidden, cell, enc_out)
