@@ -10,21 +10,31 @@ class Encoder(nn.Module):
         self.rnn = nn.LSTM(embed_dim, hidden_size, batch_first=True, bidirectional=True)
         self.bidirectional = True
 
-    def forward(self, x):
-        #out = self.embedding(x)#.unsqueeze(1)
-        out = x
-        print(out.shape)
-        out, (hidden, cell) = self.rnn(out)
-        out = self.rnn(x)
+    def forward(self, x, hidden, cell):
+        out = self.embedding(x)#.unsqueeze(1)
+        out, (hidden, cell) = self.rnn(out, (hidden, cell))
         return out, hidden, cell
     
-    # def init_hidden(self, batch_size):
-    #     hidden = torch.zeros(1+int(self.bidirectional), batch_size, self.hidden_size)
-    #     cell = torch.zeros(1+int(self.bidirectional), batch_size, self.hidden_size)
-    #     return hidden, cell
+    def init_hidden(self, batch_size):
+        hidden = torch.zeros(1+int(self.bidirectional), batch_size, self.hidden_size)
+        cell = torch.zeros(1+int(self.bidirectional), batch_size, self.hidden_size)
+        return hidden, cell
 
-obj = Encoder(66, 512, 2)
-input = torch.randint(2, (16, 17, 7))
-print(input)
-out, _, _ = obj(input)
-print(out.shape)
+# obj = Encoder(66, 128, 512)
+# hidden, cell = obj.init_hidden(3)
+# input = torch.randint(40, (3, 10))
+# print(input)
+# out, _, _ = obj(input, hidden, cell)
+# print(out.shape)
+
+
+'''
+Ww will use data like [1, 4, 19, 15..]
+10 
+lets say n data points
+m batch size 
+m x n
+embed into 512 dim space
+m x n x 128
+-- encoder = 
+'''
