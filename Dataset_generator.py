@@ -81,7 +81,7 @@ def trainDataGenerator(trainDataLength, dataSize):
         trainData['Y'+str(i+1)] = tensor2
     return trainData
         
-trainData = trainDataGenerator(trainDataLength, dataSizeHere)
+# trainData = trainDataGenerator(trainDataLength, dataSizeHere)
 
 
 
@@ -111,7 +111,7 @@ def dict_to_tensor(trainData):
          
     return inputs,outputs,pad_indices
 
-inputs,outputs,pad_indices = dict_to_tensor(trainData)
+# inputs,outputs,pad_indices = dict_to_tensor(trainData)
 
 #Converting binary data to decimal
 def binary_to_int(binary_array):
@@ -169,5 +169,7 @@ def PairGenerator(trainData):
         pairs.append((inputs[i].reshape(1,-1).type(torch.int),one_hot_outputs[i].unsqueeze(0)))
     return pairs
 
-# pairs = PairGenerator(trainData)
-# print(pairs[2][1])
+# data = PairGenerator(trainData)
+# print(data[2][1].shape)
+
+

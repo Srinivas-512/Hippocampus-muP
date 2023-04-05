@@ -1,4 +1,4 @@
-import torch 
+import torch
 import torch.nn as nn
 import torch.nn.functional as F
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -35,7 +35,7 @@ class AttentionDecoder(nn.Module):
         hidden = torch.zeros(1+int(self.bidirectional), batch_size, self.hidden_size, device = device)
         cell = torch.zeros(1+int(self.bidirectional), batch_size, self.hidden_size, device = device)
         return hidden, cell
-    
+
 # obj = AttentionDecoder(device=torch.device("cpu"), hidden_size=1024, output_vocab=66, max_length=10)
 # hidden, cell = obj.init_hidden(3)
 # print(hidden.shape)

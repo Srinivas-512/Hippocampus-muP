@@ -37,35 +37,31 @@ class Model(nn.Module):
         self.encoder = encoder
         decoder = AttentionDecoder(torch.device("cpu"), 2*self.hidden_size, self.vocab_size, self.max_length).to(device)
         self.decoder = decoder
-        self.encoder_hidden, self.encoder_cell = encoder.init_hidden(self.batch_size)
-        self.decoder_hidden, self.decoder_cell = decoder.init_hidden(self.batch_size)
-        self.sos = torch.ones((self.batch_size, 1), dtype=torch.long, device=device)*127
+
+        #self.sos =torch.ones((self.batch_size, 1), dtype=torch.long, device=device)*127
         self.count = 0
 
-    def train(self, x, target_length, input_length, target_tensor, criterion,optimizer):
-        optimizer.zero_grad()
-        loss = 0
+    def forward(self, x):
+        encoder_hidden, encoder_cell = self.encoder.init_hidden(self.batch_size)
+        decoder_hidden, decoder_cell = self.decoder.init_hidden(self.batch_size)
         target_length = self.max_length
         input_length = self.max_length
         encoder_outputs = torch.zeros(self.batch_size, self.max_length, 2*self.hidden_size, device=device)
-        loss = []
         for i in range(input_length):
-            out, self.encoder_hidden, self.encoder_cell = self.encoder(x[:,i].unsqueeze(1), self.encoder_hidden, self.encoder_cell)
+            out, encoder_hidden, encoder_cell = self.encoder(x[:,i].unsqueeze(1), encoder_hidden, encoder_cell)
             encoder_outputs[:,i] = out[0,0]
         # self.decoder_hidden, self.decoder_cell = self.encoder_hidden, self.encoder_cell
         # print(target_tensor)
-        decoder_input = self.sos
+        output_stack = []
+        decoder_input = torch.ones((self.batch_size, 1), dtype=torch.long, device=device)*127
         for i in range(target_length):
-            out, self.decoder_hidden, self.decoder_cell = self.decoder(decoder_input, self.decoder_hidden, self.decoder_cell, encoder_outputs)
+            out, decoder_hidden, decoder_cell = self.decoder(decoder_input, decoder_hidden, decoder_cell, encoder_outputs)
+            output_stack.append(out)
             topv, topi = out.topk(1, dim=-1)
-            decoder_input = topi.squeeze(1).detach()
-            loss.append(criterion(out.squeeze(1), target_tensor[:,i]))
-
-        self.count = 1
-        loss = torch.mean(torch.Tensor(loss).requires_grad_(True))
-        loss.backward()
-        optimizer.step()
-        return loss, loss.item()/target_length
+            decoder_input = topi.squeeze(1)#.detach()
+        output_stack = torch.stack(output_stack)
+        output_stack = torch.permute(torch.squeeze(output_stack.requires_grad_(), 1), [1, 0, 2])
+        return output_stack
 
     # def forward(self, x, target_length, input_length, target_tensor, criterion):
     #     loss = 0
@@ -92,28 +88,38 @@ def trainIters(pairs, n_iters, print_every=1000, plot_every=100, learning_rate=0
     print_loss_total = 0  # Reset every print_every
     plot_loss_total = 0  # Reset every plot_every
     model = Model(128, 128, 256, 17, 1)
-
+    model.load_state_dict(torch.load('attn_translation.pt'))
+    print("Model loaded")
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
     training_pairs = [random.choice(pairs) for i in range(n_iters)]
     criterion = nn.NLLLoss()
 
     for iter in range(1, n_iters+1 ):
-        training_pair = training_pairs[iter-1]
-        input_tensor = training_pair[0].cuda()
-        target_tensor = training_pair[1].cuda()
-        # loss = Dataset_generator.train(input_tensor, target_tensor, encoder,
-        #              decoder, encoder_optimizer, decoder_optimizer, criterion)
-        target_tensor = torch.argmax(target_tensor, dim=-1)
-        loss, avg = model.train(input_tensor, target_tensor.shape[0], input_tensor.shape[0], target_tensor, criterion,optimizer)
+        with torch.autograd.detect_anomaly():
+            optimizer.zero_grad()
+            training_pair = training_pairs[iter-1]
+            input_tensor = training_pair[0].cuda()
+            target_tensor = training_pair[1].cuda()
+            # loss = Dataset_generator.train(input_tensor, target_tensor, encoder,
+            #              decoder, encoder_optimizer, decoder_optimizer, criterion)
+            target_tensor = torch.argmax(target_tensor, dim=-1)
+
+            out = model(input_tensor)
+            loss = criterion(out.squeeze(0), target_tensor.squeeze(0))#torch.mean(torch.Tensor(loss).requires_grad_(True))
+            loss.backward(retain_graph=True)
+            optimizer.step()
 
         print_loss_total += loss
         plot_loss_total += loss
 
         if iter % print_every == 0:
             print_loss_avg = print_loss_total / print_every
+
             print_loss_total = 0
             print('%s (%d %d%%) %.7f' % (timeSince(start, iter / n_iters),
                                          iter, iter / n_iters * 100, print_loss_avg))
+            torch.save(model.state_dict(), 'attn_translation.pt')
+            print("model saved")                             
 
         if iter % plot_every == 0:
             plot_loss_avg = plot_loss_total / plot_every
