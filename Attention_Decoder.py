@@ -1,7 +1,7 @@
 import torch 
 import torch.nn as nn
 import torch.nn.functional as F
-
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 class AttentionDecoder(nn.Module):
     def __init__(self, device, hidden_size, output_vocab, max_length, dropout_p=0.1):
@@ -28,11 +28,12 @@ class AttentionDecoder(nn.Module):
         output = F.relu(output)
         output, (hidden, cell) = self.rnn(output, (hidden, cell))
         output = F.softmax(self.out(output), dim=-1)
+        output = torch.log(output)
         return output, hidden, cell
 
     def init_hidden(self, batch_size):
-        hidden = torch.zeros(1+int(self.bidirectional), batch_size, self.hidden_size)
-        cell = torch.zeros(1+int(self.bidirectional), batch_size, self.hidden_size)
+        hidden = torch.zeros(1+int(self.bidirectional), batch_size, self.hidden_size, device = device)
+        cell = torch.zeros(1+int(self.bidirectional), batch_size, self.hidden_size, device = device)
         return hidden, cell
     
 # obj = AttentionDecoder(device=torch.device("cpu"), hidden_size=1024, output_vocab=66, max_length=10)

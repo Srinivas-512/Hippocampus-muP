@@ -1,6 +1,9 @@
+
 import torch
 import torch.nn as nn 
 import torch.nn.functional as F
+
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 class EncoderRNN(nn.Module):
     def __init__(self, vocab_size, embed_dim, hidden_size):
@@ -16,8 +19,8 @@ class EncoderRNN(nn.Module):
         return out, hidden, cell
     
     def init_hidden(self, batch_size):
-        hidden = torch.zeros(1+int(self.bidirectional), batch_size, self.hidden_size)
-        cell = torch.zeros(1+int(self.bidirectional), batch_size, self.hidden_size)
+        hidden = torch.zeros(1+int(self.bidirectional), batch_size, self.hidden_size, device=device)
+        cell = torch.zeros(1+int(self.bidirectional), batch_size, self.hidden_size, device=device)
         return hidden, cell
 
 # obj = EncoderRNN(66, 128, 512)

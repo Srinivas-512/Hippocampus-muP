@@ -9,6 +9,10 @@ import time
 import random
 import math
 
+
+
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
 def asMinutes(s):
     m = math.floor(s / 60)
     s -= m * 60
@@ -29,13 +33,13 @@ class Model(nn.Module):
         self.hidden_size = hidden_size
         self.max_length = max_length
         self.batch_size = batch_size
-        encoder = EncoderRNN(self.vocab_size, self.embed_dim, self.hidden_size)
+        encoder = EncoderRNN(self.vocab_size, self.embed_dim, self.hidden_size).to(device)
         self.encoder = encoder
-        decoder = AttentionDecoder(torch.device("cpu"), 2*self.hidden_size, self.vocab_size, self.max_length)
+        decoder = AttentionDecoder(torch.device("cpu"), 2*self.hidden_size, self.vocab_size, self.max_length).to(device)
         self.decoder = decoder
         self.encoder_hidden, self.encoder_cell = encoder.init_hidden(self.batch_size)
         self.decoder_hidden, self.decoder_cell = decoder.init_hidden(self.batch_size)
-        self.sos = torch.ones((self.batch_size, 1), dtype=torch.long)*127
+        self.sos = torch.ones((self.batch_size, 1), dtype=torch.long, device=device)*127
         self.count = 0
     
     def train(self, x, target_length, input_length, target_tensor, criterion,optimizer):
@@ -43,22 +47,20 @@ class Model(nn.Module):
         loss = 0
         target_length = self.max_length
         input_length = self.max_length
-        encoder_outputs = torch.zeros(self.batch_size, self.max_length, 2*self.hidden_size)
+        encoder_outputs = torch.zeros(self.batch_size, self.max_length, 2*self.hidden_size, device=device)
         loss = []
         for i in range(input_length):
             out, self.encoder_hidden, self.encoder_cell = self.encoder(x[:,i].unsqueeze(1), self.encoder_hidden, self.encoder_cell)
             encoder_outputs[:,i] = out[0,0]
         # self.decoder_hidden, self.decoder_cell = self.encoder_hidden, self.encoder_cell
-        
+        # print(target_tensor)
         decoder_input = self.sos
         for i in range(target_length):
             out, self.decoder_hidden, self.decoder_cell = self.decoder(decoder_input, self.decoder_hidden, self.decoder_cell, encoder_outputs)
             topv, topi = out.topk(1, dim=-1)
-            if(self.count==0):
-                print(out)
             decoder_input = topi.squeeze(1).detach()
-            loss.append(criterion(out.squeeze(1), target_tensor[:,i]))
-        self.count += 1
+            loss.append(criterion(torch.log(out).squeeze(1), target_tensor[:,i]))
+        self.count = 1
         loss = torch.mean(torch.Tensor(loss).requires_grad_(True))
         loss.backward()
         optimizer.step()
@@ -83,15 +85,6 @@ class Model(nn.Module):
 input is -- > (batch size, number of numbers -- sequence length)
 '''
 
-
-trainDataLength = 4096
-max_size = 8
-dataSizeHere = 5
-trainData = Dataset_generator.trainDataGenerator(trainDataLength, dataSizeHere)
-pairs = Dataset_generator.PairGenerator(trainData)
-
-
-
 def trainIters(pairs, n_iters, print_every=1000, plot_every=100, learning_rate=0.001):
     start = time.time()
     plot_losses = []
@@ -105,14 +98,11 @@ def trainIters(pairs, n_iters, print_every=1000, plot_every=100, learning_rate=0
 
     for iter in range(1, n_iters+1 ):
         training_pair = training_pairs[iter-1]
-        input_tensor = training_pair[0]
-        target_tensor = training_pair[1]
-        # print(target_tensor.shape)
+        input_tensor = training_pair[0].cuda()
+        target_tensor = training_pair[1].cuda()
         # loss = Dataset_generator.train(input_tensor, target_tensor, encoder,
         #              decoder, encoder_optimizer, decoder_optimizer, criterion)
-        target_tensor = torch.argmax(target_tensor, dim=1)
-        
-
+        target_tensor = torch.argmax(target_tensor, dim=-1)
         loss, avg = model.train(input_tensor, target_tensor.shape[0], input_tensor.shape[0], target_tensor, criterion,optimizer)
 
         print_loss_total += loss
@@ -133,4 +123,9 @@ def trainIters(pairs, n_iters, print_every=1000, plot_every=100, learning_rate=0
 
     plt.showPlot(plot_losses)
 
+trainDataLength = 4096*2
+max_size = 8
+dataSizeHere = 5
+trainData = Dataset_generator.trainDataGenerator(trainDataLength, dataSizeHere)
+pairs = Dataset_generator.PairGenerator(trainData)
 trainIters(pairs, 75000)
