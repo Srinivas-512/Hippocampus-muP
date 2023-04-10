@@ -88,8 +88,8 @@ def trainIters(pairs, n_iters, print_every=1000, plot_every=100, learning_rate=0
     print_loss_total = 0  # Reset every print_every
     plot_loss_total = 0  # Reset every plot_every
     model = Model(128, 128, 256, 17, 1)
-    model.load_state_dict(torch.load('attn_translation.pt'))
-    print("Model loaded")
+    #model.load_state_dict(torch.load('attn_translation.pt'))
+    #print("Model loaded")
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
     training_pairs = [random.choice(pairs) for i in range(n_iters)]
     criterion = nn.NLLLoss()
@@ -119,7 +119,7 @@ def trainIters(pairs, n_iters, print_every=1000, plot_every=100, learning_rate=0
             print('%s (%d %d%%) %.7f' % (timeSince(start, iter / n_iters),
                                          iter, iter / n_iters * 100, print_loss_avg))
             torch.save(model.state_dict(), 'attn_translation.pt')
-            print("model saved")                             
+            print("model saved")
 
         if iter % plot_every == 0:
             plot_loss_avg = plot_loss_total / plot_every
