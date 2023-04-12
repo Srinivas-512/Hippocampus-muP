@@ -81,7 +81,7 @@ def trainDataGenerator(trainDataLength, dataSize):
         trainData['Y'+str(i+1)] = tensor2
     return trainData
         
-# trainData = trainDataGenerator(trainDataLength, dataSizeHere)
+trainData = trainDataGenerator(trainDataLength, dataSizeHere)
 
 
 
@@ -122,7 +122,7 @@ def binary_to_int(binary_array):
 def binary_tensor_to_int(tensor):
     tensor = tensor.long()
     num_rows = tensor.size(0)
-    int_tensor = torch.zeros(num_rows, dtype=torch.int64)
+    int_tensor = torch.zeros(num_rows, dtype=torch.long)
     for i in range(num_rows):
         int_val = binary_to_int(tensor[i])
         int_tensor[i] = int_val
@@ -172,4 +172,34 @@ def PairGenerator(trainData):
 # data = PairGenerator(trainData)
 # print(data[2][1].shape)
 
+def PairGeneratorForSeq2Seq(trainData):
+    inputs, outputs = DataGenerator(trainData)
+    inputs = inputs.T
+    outputs = outputs.T
+    l = inputs.shape[1]
+    EOS = torch.ones(inputs.shape[1])*127
+    EOS = torch.unsqueeze( EOS , dim = 0)
+    # print(EOS.shape)
 
+    inputs = torch.cat((inputs,EOS))
+    outputs = torch.cat((outputs,EOS))
+    # exit(1)
+    # one_hot_outputs = torch.zeros(17,l,128)
+    # one_hot_inputs = torch.zeros(17,l,128)
+    # one_hot_tensor = F.one_hot(torch.arange(0,128))
+    # for i in range(l):
+    #     k = len(outputs[i])
+    #     for j in range(k):
+    #         one_hot_inputs[:,j][i] = one_hot_tensor[int(inputs[j][i].item())]
+    #         one_hot_outputs[:,j][i] = one_hot_tensor[int(outputs[j][i].item())]
+    pairs = []
+    for i in range(l):
+        pairs.append((inputs[:,i], outputs[:,i]))
+    return pairs
+    
+
+
+data = PairGeneratorForSeq2Seq(trainData)
+
+# print(data[2][0])
+# print(data[2][1])
