@@ -13,13 +13,13 @@ import Dataset_generator
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-trainDataLength = 8192
-max_size = 8
+trainDataLength = 8192*2
+max_size = 5
 dataSizeHere = 5
 trainData = Dataset_generator.trainDataGenerator(trainDataLength, dataSizeHere)
 pairs = Dataset_generator.PairGeneratorForSeq2Seq(trainData)
 batch_size = 32
-MAX_LENGTH = 17
+MAX_LENGTH = 11
 
 SOS_token = 126
 EOS_token = 127
@@ -27,17 +27,11 @@ EOS_token = 127
 class Encoder(nn.Module):
    def __init__(self, input_dim, hidden_dim, embbed_dim, num_layers):
        super(Encoder, self).__init__()
-      
-       #set the encoder input dimesion , embbed dimesion, hidden dimesion, and number of layers 
        self.input_dim = input_dim
        self.embbed_dim = embbed_dim
        self.hidden_dim = hidden_dim
        self.num_layers = num_layers
-
-       #initialize the embedding layer with input and embbed dimention
        self.embedding = nn.Embedding(self.input_dim, self.embbed_dim)
-       #intialize the GRU to take the input dimetion of embbed, and output dimention of hidden and
-       #set the number of gru layers
        self.gru = nn.GRU(self.embbed_dim, self.hidden_dim, num_layers=self.num_layers)
               
    def forward(self, src):
@@ -50,14 +44,12 @@ class Encoder(nn.Module):
 class Decoder(nn.Module):
    def __init__(self, output_dim, hidden_dim, embbed_dim, num_layers):
        super(Decoder, self).__init__()
-
-#set the encoder output dimension, embed dimension, hidden dimension, and number of layers 
        self.embbed_dim = embbed_dim
        self.hidden_dim = hidden_dim
        self.output_dim = output_dim
        self.num_layers = num_layers
 
-# initialize every layer with the appropriate dimension. For the decoder layer, it will consist of an embedding, GRU, a Linear layer and a Log softmax activation function.
+
        self.embedding = nn.Embedding(output_dim, self.embbed_dim)
        self.gru = nn.GRU(self.embbed_dim, self.hidden_dim, num_layers=self.num_layers)
        self.out = nn.Linear(self.hidden_dim, output_dim)
@@ -111,6 +103,7 @@ class Seq2Seq(nn.Module):
 #predict the output word from the current target word. If we enable the teaching force,  then the #next decoder input is the next word, else, use the decoder output highest value. 
 
        for t in range(target_length):   
+           
            decoder_output, decoder_hidden = self.decoder(decoder_input, decoder_hidden)
            outputs[t] = decoder_output
            teacher_force = random.random() < teacher_forcing_ratio
@@ -137,10 +130,16 @@ def clacModel(model, input_tensor, target_tensor, model_optimizer, criterion):
 
    num_iter = output.size(0)
    
+   Tensor1 = torch.zeros((2*max_size+2,1))
+   Tensor2 = torch.zeros((2*max_size+2,1))
+
    for ot in range(num_iter):
-       if count%50 == 0:
-              print(f"Input Tensor: {input_tensor[ot]} , Target Tensor : {target_tensor[ot]}, Output Tensor: {torch.argmax(output[ot], dim = -1)}")  
+       Tensor1[ot] = target_tensor[ot][0]
+       Tensor2[ot] = torch.argmax(output[ot], dim = -1)[0]
        loss = loss + (criterion(output[ot], target_tensor[ot])).requires_grad_(requires_grad=True)
+
+   if count%50 == 0:
+       print(f"Input Tensor: {input_tensor[:,0].T} , Target Tensor : {Tensor1.T}, Output Tensor: {Tensor2.T}")  
    loss.backward()
    count += 1
    model_optimizer.step()
@@ -161,19 +160,11 @@ def trainModel(model, pairs, num_iteration=20000):
             for i in range(batch_size):
                 input_tensor.append(training_pairs[i][0])
                 target_tensor.append(training_pairs[i][1]) 
-        for i in range(batch_size):
-            training_pairs = [random.choice(pairs) for i in range(batch_size)]
-            input_tensor = []
-            target_tensor = []
-            for i in range(batch_size):
-                input_tensor.append(training_pairs[i][0])
-                target_tensor.append(training_pairs[i][1]) 
         input_tensor = torch.stack(input_tensor).T.long()
         target_tensor = torch.stack(target_tensor).T.long()
         loss = clacModel(model, input_tensor, target_tensor, optimizer, criterion)
         total_loss_iterations += loss
         
-
         if iter % 50 == 0:
             avarage_loss= total_loss_iterations / 50
             total_loss_iterations = 0
@@ -183,10 +174,10 @@ def trainModel(model, pairs, num_iteration=20000):
     
 
     
-embed_size = 16
+embed_size = 32
 hidden_size = 256
-num_layers = 1
-num_iteration = 2500
+num_layers = 4
+num_iteration = 25000
 input_size = 128
 
 encoder = Encoder(input_size, hidden_size, embed_size, num_layers)
