@@ -30,7 +30,6 @@ def generator_X(storeLength, dataSize):
     X = np.delete(X , 0, 0)
     
     #End Store
-    X = np.vstack(( X, np.array([0,1] + [0]*dataSize) ))
     
     #Retrieve
     for i in range(storeLength):
@@ -45,11 +44,11 @@ def generator_Y(X, dataSize):
     Y = np.zeros(shape=(1, dataSize+2), dtype = float)
     for i in range(X.shape[0]):
         if ((X[i][0:2] == [0,0]).all()):
-            J = [0] * (dataSize+2)
+            J = [1,1]+[0] * (dataSize)
             J = np.array(J)
             Y = np.vstack((Y,J))
         elif ((X[i][0:2] == [0,1]).all()):
-            J = [0] * (dataSize+2)
+            J = [0,1,1]+[0] * (dataSize-1)
             J = np.array(J)
             Y = np.vstack((Y,J))
         elif ((X[i][0:2] == [1,0]).all()):
@@ -88,20 +87,20 @@ trainData = trainDataGenerator(trainDataLength, dataSizeHere)
 #Converting dictionary to a tensor after padding
 def dict_to_tensor(trainData):
     l = len(trainData)//2
-    inputs = torch.zeros((l,2*max_size+1,dataSizeHere+2))
-    outputs = torch.zeros((l,2*max_size+1,dataSizeHere+2))
+    inputs = torch.zeros((l,2*max_size,dataSizeHere+2))
+    outputs = torch.zeros((l,2*max_size,dataSizeHere+2))
     pad_indices = np.zeros((1,l))
     for i in range(l):
         pad_indices[0][i] = (trainData['X'+str(i+1)]).shape[0] 
     pad_indices = pad_indices.reshape(-1)
 
     for i in range(l):
-        if (len(trainData['X'+str(i+1)]) < 2*max_size+1):
+        if (len(trainData['X'+str(i+1)]) < 2*max_size):
             l = len(trainData['X'+str(i+1)])
             for j in range(l,2*max_size+1):
                 zeros_row = torch.zeros((1, dataSizeHere+2))
                 trainData['X'+str(i+1)]= torch.cat((trainData['X'+str(i+1)], zeros_row), dim=0)
-        if (len(trainData['Y'+str(i+1)]) < 2*max_size+1):
+        if (len(trainData['Y'+str(i+1)]) < 2*max_size):
             l = len(trainData['Y'+str(i+1)])
             for j in range(l,2*max_size+1):
                 zeros_row = torch.zeros((1, dataSizeHere+2))
@@ -131,16 +130,16 @@ def binary_tensor_to_int(tensor):
 
 def binary_to_decimal(trainData, padding=False):
     no_of_inputs = len(trainData)//2
-    inputs = torch.zeros((no_of_inputs, 2*max_size+1))
-    outputs = torch.zeros((no_of_inputs,2*max_size+1))
+    inputs = torch.zeros((no_of_inputs, 2*max_size))
+    outputs = torch.zeros((no_of_inputs,2*max_size))
     if (padding == True):
         for i in range(no_of_inputs):
-            if (len(trainData['X'+str(i+1)]) < 2*max_size+1):
+            if (len(trainData['X'+str(i+1)]) < 2*max_size):
                 l = len(trainData['X'+str(i+1)])
                 for j in range(l,2*max_size+1):
                     zeros_row = torch.zeros((1, dataSizeHere+2))
                     trainData['X'+str(i+1)]= torch.cat((trainData['X'+str(i+1)], zeros_row), dim=0)
-            if (len(trainData['Y'+str(i+1)]) < 2*max_size+1):
+            if (len(trainData['Y'+str(i+1)]) < 2*max_size):
                 l = len(trainData['Y'+str(i+1)])
                 for j in range(l,2*max_size+1):
                     zeros_row = torch.zeros((1, dataSizeHere+2))
@@ -161,8 +160,9 @@ def DataGenerator(trainData):
 
 def PairGenerator(trainData):
     inputs, outputs = DataGenerator(trainData)
+    
     l = len(inputs)
-    one_hot_outputs = torch.zeros(l,17,128)
+    one_hot_outputs = torch.zeros(l,2*max_size,128)
     one_hot_tensor = F.one_hot(torch.arange(0,128))
     for i in range(l):
         k = len(outputs[i])
@@ -170,7 +170,7 @@ def PairGenerator(trainData):
             one_hot_outputs[i][j] = one_hot_tensor[int(outputs[i][j].item())]
     pairs = []
     for i in range(l):
-        pairs.append((inputs[i].reshape(1,-1).type(torch.int),one_hot_outputs[i].unsqueeze(0)))
+        pairs.append((inputs[i].reshape(1,-1).type(torch.long), one_hot_outputs[i].unsqueeze(0)))
     return pairs
 
 # data = PairGenerator(trainData)

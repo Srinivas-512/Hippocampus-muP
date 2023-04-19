@@ -5,12 +5,17 @@ import torch.nn.functional as F
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
+# from positional_encodings.torch_encodings import PositionalEncoding1D, PositionalEncoding2D, PositionalEncoding3D, Summer
+
+
+
 class EncoderRNN(nn.Module):
-    def __init__(self, vocab_size, embed_dim, hidden_size):
+    def __init__(self, vocab_size, embed_dim, hidden_size, num_layers=1):
         super(EncoderRNN, self).__init__()
         self.embedding = nn.Embedding(vocab_size, embed_dim)
         self.hidden_size = hidden_size
-        self.rnn = nn.LSTM(embed_dim, hidden_size, batch_first=True, bidirectional=True)
+        self.num_layers = num_layers
+        self.rnn = nn.LSTM(embed_dim, hidden_size, num_layers = self.num_layers, batch_first=True, bidirectional=True)
         self.bidirectional = True
 
     def forward(self, x, hidden, cell):
@@ -19,8 +24,8 @@ class EncoderRNN(nn.Module):
         return out, hidden, cell
     
     def init_hidden(self, batch_size):
-        hidden = torch.zeros(1+int(self.bidirectional), batch_size, self.hidden_size, device=device)
-        cell = torch.zeros(1+int(self.bidirectional), batch_size, self.hidden_size, device=device)
+        hidden = torch.randn((1+int(self.bidirectional))*self.num_layers, batch_size, self.hidden_size, device=device)
+        cell = torch.randn((1+int(self.bidirectional))*self.num_layers, batch_size, self.hidden_size, device=device)
         return hidden, cell
 
 # obj = EncoderRNN(66, 128, 512)
