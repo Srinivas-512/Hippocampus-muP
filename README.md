@@ -1,6 +1,11 @@
 # Hippocampus-muP
 
-1) Prepare the dataset and understand the FF neuron 
-2) Ideate on architecture to simulate memory
-3) Identify opcode sequences to push, pop and flush
-4) Once base implementation ready, add addressing
+--Stack Model Implementation done. A Seq2Seq LSTM Encoder-Decoder model had enough capacity to reciprocate a stack model. 
+
+###Further Tasks
+
+--Log Stack Model's limitations and implement variable length stack with padding
+--Test the model for Microprocessor data
+
+
+
